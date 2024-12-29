@@ -14,13 +14,6 @@ const WeatherCard = ({ weather, currentTime, unit }) => {
     <div className="weather-card">
       <div className="weather-main">
         <h2 className="location">{weather.location.name}</h2>
-        <p className="current-time">
-          As of {currentTime.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-          })}
-        </p>
         <div className="temperature">
           {Math.round(weather.current.temp_c)}°
         </div>
@@ -37,18 +30,28 @@ const WeatherCard = ({ weather, currentTime, unit }) => {
 const HourlyForecast = ({ weather, unit }) => {
   const currentHour = new Date().getHours();
   
-  // Filter hours until midnight (23:00)
+  // Get today's and tomorrow's hours
   const todayHours = weather.forecast.forecastday[0].hour
     .filter(hour => {
       const hourTime = new Date(hour.time).getHours();
-      return hourTime > currentHour && hourTime <= 23;
+      return hourTime >= currentHour;
     });
+
+  // Add tomorrow's early hours if needed
+  const tomorrowHours = weather.forecast.forecastday[1].hour
+    .filter(hour => {
+      const hourTime = new Date(hour.time).getHours();
+      return hourTime < currentHour;
+    });
+
+  // Combine today's remaining hours with tomorrow's early hours
+  const displayHours = [...todayHours, ...tomorrowHours].slice(0, 24);
 
   return (
     <div className="hourly-forecast">
       <h3>Hourly Forecast</h3>
       <div className="hours-grid">
-        {todayHours.map((hour, index) => (
+        {displayHours.map((hour, index) => (
           <div key={index} className="hour-item">
             <span className="hour-time">
               {new Date(hour.time).getHours()}:00
@@ -91,45 +94,9 @@ const DailyForecast = ({ weather, onDayClick }) => {
   );
 };
 
-const Settings = ({ isOpen, onClose, theme, unit, onThemeChange, onUnitChange }) => {
-  return (
-    <div className={`settings-panel ${isOpen ? 'active' : ''}`}>
-      <div className="settings-header">
-        <h3>Settings</h3>
-        <button onClick={onClose}>×</button>
-      </div>
-      <div className="settings-option">
-        <label>Temperature Unit</label>
-        <select value={unit} onChange={(e) => onUnitChange(e.target.value)}>
-          <option value="C">Celsius</option>
-          <option value="F">Fahrenheit</option>
-        </select>
-      </div>
-      <div className="settings-option">
-        <label>Theme</label>
-        <select value={theme} onChange={(e) => onThemeChange(e.target.value)}>
-          <option value="light">Light</option>
-          <option value="dark">Dark</option>
-        </select>
-      </div>
-      <button onClick={() => { 
-        onClose(); 
-      }} className="apply-settings-button">Apply Settings</button>
-    </div>
-  );
-};
-
 const About = () => {
   return (
     <div className="about-section">
-      <div className="about-header">
-        <i className="fas fa-cloud-sun-rain hero-icon"></i>
-        <h2>Your Personal Weather Companion</h2>
-        <p className="tagline">
-          Experience weather forecasting reimagined for the modern world
-        </p>
-      </div>
-
       <div className="about-content">
         <div className="feature-grid">
           <div className="feature-card">
@@ -159,7 +126,6 @@ const About = () => {
         </div>
 
         <div className="about-description">
-          <h3>Why Choose Weathery?</h3>
           <p>
             Weathery combines cutting-edge technology with an intuitive interface 
             to deliver the most accurate weather information. Whether you're planning 
@@ -173,13 +139,38 @@ const About = () => {
 };
 
 const App = () => {
+  // Add this at the beginning of your App component
+  useEffect(() => {
+    const createRain = () => {
+      const rainContainer = document.body;
+      const raindrop = document.createElement('div');
+      raindrop.classList.add('rain');
+      
+      // Random positioning and timing
+      raindrop.style.left = Math.random() * window.innerWidth + 'px';
+      raindrop.style.animationDuration = Math.random() * 1 + 0.5 + 's';
+      raindrop.style.opacity = Math.random() * 0.3 + 0.2;
+      
+      rainContainer.appendChild(raindrop);
+      
+      // Remove raindrop after animation
+      setTimeout(() => {
+        raindrop.remove();
+      }, 2000);
+    };
+
+    // Create rain drops
+    const rainInterval = setInterval(createRain, 20);
+
+    return () => clearInterval(rainInterval);
+  }, []);
+
   const [city, setCity] = useState('');
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [showSettings, setShowSettings] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [theme, setTheme] = useState('light');
   const [unit, setUnit] = useState('C');
@@ -408,16 +399,6 @@ const App = () => {
             </div>
           </div>
         </footer>
-
-        {/* Settings Panel */}
-        <Settings 
-          isOpen={showSettings} 
-          onClose={() => setShowSettings(false)}
-          theme={theme}
-          unit={unit}
-          onThemeChange={setTheme}
-          onUnitChange={setUnit}
-        />
 
         {/* Day Detail Modal */}
         {selectedDay && (
