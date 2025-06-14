@@ -74,7 +74,7 @@ const HourlyForecast = ({ weather, unit }) => {
 const DailyForecast = ({ weather, onDayClick }) => {
   return (
     <div className="ten-day-forecast">
-      <h3>10-Day Forecast</h3>
+      <h3>3-Day Forecast</h3>
       {weather.forecast.forecastday.map((day, index) => (
         <div key={index} className="day-forecast" onClick={() => onDayClick(day)}>
           <div className="day-date">
@@ -100,37 +100,35 @@ const About = () => {
       <div className="about-content">
         <div className="feature-grid">
           <div className="feature-card">
-            <i className="fas fa-clock"></i>
-            <h4>Real-Time Updates</h4>
-            <p>Get instant weather updates with precise accuracy</p>
+            <i className="fas fa-cloud-sun-rain"></i>
+            <h4>Real-Time Forecast</h4>
+            <p>Get up-to-the-minute weather information with high accuracy and automatic updates</p>
           </div>
           
           <div className="feature-card">
-            <i className="fas fa-calendar-alt"></i>
-            <h4>10-Day Forecast</h4>
-            <p>Plan ahead with detailed weather predictions</p>
+            <i className="fas fa-calendar-week"></i>
+            <h4>3-Day Forecast</h4>
+            <p>Plan your activities with detailed weather forecasts for the next 3 days</p>
           </div>
-        </div>
-        <div className="feature-grid">
+
           <div className="feature-card">
-            <i className="fas fa-map-marker-alt"></i>
-            <h4>Location-Based</h4>
-            <p>Automatic weather detection for your area</p>
+            <i className="fas fa-map-marked-alt"></i>
+            <h4>Automatic Location</h4>
+            <p>Automatic location detection to get weather information wherever you are</p>
           </div>
           
           <div className="feature-card">
-            <i className="fas fa-chart-line"></i>
-            <h4>Detailed Analytics</h4>
-            <p>Comprehensive weather data and trends</p>
+            <i className="fas fa-chart-bar"></i>
+            <h4>Complete Data</h4>
+            <p>Detailed information including temperature, humidity, wind speed, and rain probability</p>
           </div>
         </div>
 
         <div className="about-description">
           <p>
-            Weathery combines cutting-edge technology with an intuitive interface 
-            to deliver the most accurate weather information. Whether you're planning 
-            your daily commute or a weekend getaway, we've got you covered with 
-            precision forecasts and real-time updates.
+            Weathery is a modern weather forecast application that combines cutting-edge technology with 
+            an intuitive interface. Designed to provide accurate and easy-to-understand weather information, 
+            helping you better plan your activities.
           </p>
         </div>
       </div>
@@ -181,16 +179,53 @@ const App = () => {
     document.body.className = theme;
   }, [theme]);
 
+  const getCurrentLocation = async () => {
+    setLocationLoading(true);
+    
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    };
+  
+    if ("geolocation" in navigator) {
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, options);
+        });
+        
+        const lat = position.coords.latitude.toFixed(4);
+        const lon = position.coords.longitude.toFixed(4);
+        
+        const response = await axios.get(
+          `https://api.weatherapi.com/v1/forecast.json?key=519bcb1997d24256906120719242212&q=${lat},${lon}&days=3&aqi=yes&alerts=yes`
+        );
+        setWeather(response.data);
+        setCity(response.data.location.name);
+      } catch (error) {
+        console.error('Error getting location:', error);
+        // Jika gagal mendapatkan lokasi, gunakan Jakarta sebagai default
+        fetchDefaultWeather();
+      } finally {
+        setLocationLoading(false);
+      }
+    } else {
+      console.log('Geolocation tidak didukung');
+      fetchDefaultWeather();
+      setLocationLoading(false);
+    }
+  };
+
   useEffect(() => {
-    // Fetch Jakarta weather on initial load
-    fetchDefaultWeather();
+    // Coba dapatkan lokasi pengguna saat pertama kali membuka web
+    getCurrentLocation();
     
     // Update waktu setiap detik
     const interval = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
 
-    return () => clearInterval(interval); // Bersihkan interval saat komponen unmount
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -205,7 +240,7 @@ const App = () => {
   const fetchDefaultWeather = async () => {
     try {
       const response = await axios.get(
-        `https://api.weatherapi.com/v1/forecast.json?key=519bcb1997d24256906120719242212&q=Jakarta&days=10&aqi=yes&alerts=yes`
+        `https://api.weatherapi.com/v1/forecast.json?key=519bcb1997d24256906120719242212&q=Jakarta&days=3&aqi=yes&alerts=yes`
       );
       setWeather(response.data);
     } catch (error) {
@@ -220,7 +255,7 @@ const App = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `https://api.weatherapi.com/v1/forecast.json?key=519bcb1997d24256906120719242212&q=${city.trim()}&days=10&aqi=yes&alerts=yes`
+        `https://api.weatherapi.com/v1/forecast.json?key=519bcb1997d24256906120719242212&q=${city.trim()}&days=3&aqi=yes&alerts=yes`
       );
       setWeather(response.data);
     } catch (error) {
@@ -246,60 +281,6 @@ const App = () => {
 
   const handleDayClick = (day) => {
     setSelectedDay(day);
-  };
-
-  const getCurrentLocation = () => {
-    setLocationLoading(true);
-    
-    const options = {
-      enableHighAccuracy: true, // Request high accuracy
-      timeout: 10000,          // Time to wait for response (10 seconds)
-      maximumAge: 0            // Force fresh location
-    };
-  
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          try {
-            // Get more precise coordinates
-            const lat = position.coords.latitude.toFixed(4);
-            const lon = position.coords.longitude.toFixed(4);
-            
-            const response = await axios.get(
-              `https://api.weatherapi.com/v1/forecast.json?key=519bcb1997d24256906120719242212&q=${lat},${lon}&days=10&aqi=yes&alerts=yes`
-            );
-            setWeather(response.data);
-            setCity(response.data.location.name); // Update city name
-          } catch (error) {
-            alert('Error fetching weather data for your location');
-          } finally {
-            setLocationLoading(false);
-          }
-        },
-        (error) => {
-          let errorMessage;
-          switch(error.code) {
-            case error.PERMISSION_DENIED:
-              errorMessage = "Please allow location access to use this feature.";
-              break;
-            case error.POSITION_UNAVAILABLE:
-              errorMessage = "Location information unavailable.";
-              break;
-            case error.TIMEOUT:
-              errorMessage = "Location request timed out.";
-              break;
-            default:
-              errorMessage = "An unknown error occurred.";
-          }
-          alert(errorMessage);
-          setLocationLoading(false);
-        },
-        options
-      );
-    } else {
-      alert('Geolocation is not supported by this browser');
-      setLocationLoading(false);
-    }
   };
 
   const fetchCities = async () => {
@@ -331,11 +312,6 @@ const App = () => {
                 onKeyPress={(e) => e.key === 'Enter' && fetchWeather()}
               />
             </div>
-          </div>
-          <div className="nav-right">
-            <button onClick={getCurrentLocation}>
-              <i className="fas fa-map-marker-alt"></i> Current Location
-            </button>
           </div>
           <nav className="nav-menu">
             <Link to="/about" className="menu-item">
